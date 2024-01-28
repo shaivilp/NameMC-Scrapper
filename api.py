@@ -11,8 +11,6 @@ import threading
 import re
 
 app = Flask("NameMC Droptime API")
-app.config['TIMEOUT'] = 30
-
 limiter = Limiter(app)
 
 apiKeysFile = 'apikeys.json'
@@ -47,9 +45,7 @@ def validate_secret(secret):
     return secret == "PR69wU2FAmCu5BhxZyaYqXTk8zVc3t7EDjSs4pMnfdQKbLHegv"
 
 async def getDroptime(name: str):
-    options = webdriver.ChromeOptions()
-    options.headless = False
-    async with webdriver.Chrome(options=options) as driver:
+    async with webdriver.Chrome() as driver:
         await driver.get(f"https://namemc.com/search?q={name}")
         await driver.sleep(0.5)
         await driver.wait_for_cdp("Page.domContentEventFired", timeout=15)
@@ -73,9 +69,7 @@ async def getDroptime(name: str):
         return data
 
 async def getSearches(name : str):
-    options = webdriver.ChromeOptions()
-    options.headless = False
-    async with webdriver.Chrome(options=options) as driver:
+    async with webdriver.Chrome() as driver:
         await driver.get(f"https://namemc.com/search?q={name}")
         await driver.sleep(0.5)
         await driver.wait_for_cdp("Page.domContentEventFired", timeout=15)
@@ -132,7 +126,6 @@ def disable_api_key():
 
 
 @app.route('/getDroptime', methods=['GET'])
-@limiter.limit("5 per minute")
 async def get_droptime():
     name = request.args.get('name')
     api_key = request.headers.get('X-API-Key')
@@ -144,7 +137,7 @@ async def get_droptime():
         # Check if data is in the cache before fetching
         if name in cachedData:
             return jsonify(cachedData[name]["data"])
-
+        
         data = await getDroptime(name)
         return jsonify(data)
 
@@ -152,7 +145,6 @@ async def get_droptime():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/getSearches', methods=['GET'])
-@limiter.limit("5 per minute")
 async def get_searches():
     name = request.args.get('name')
     api_key = request.headers.get('X-API-Key')
